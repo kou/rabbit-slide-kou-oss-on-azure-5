@@ -1,0 +1,28 @@
+---
+id: oss-on-azure-5
+base_name: mysql-and-postgresql-and-japanese-full-text-search
+tags:
+- rabbit
+- mysql
+- postgresql
+- full-text-search
+- mroonga
+- pgroonga
+- azure
+presentation_date: 2017-06-26
+version: 2017.6.26.0
+licenses:
+- CC BY 3.0
+- CC BY-SA 4.0
+slideshare_id:
+speaker_deck_id: 
+ustream_id: 
+vimeo_id: 
+youtube_id: 
+author:
+  markup_language: :rd
+  name: Kouhei Sutou
+  email: kou@clear-code.com
+  rubygems_user: kou
+  slideshare_user: kou
+  speaker_deck_user:

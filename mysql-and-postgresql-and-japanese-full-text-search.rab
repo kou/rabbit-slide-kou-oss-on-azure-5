@@ -1,0 +1,27 @@
+= MySQLと\nPostgreSQLと\n日本語全文検索
+
+: subtitle
+   Azure Databaseで\nMroonga・PGroongaを使いたいですよね！？
+: author
+   須藤功平
+: institution
+   クリアコード
+: content-source
+   OSS on Azure非公式コミュニティ #5 『Azure Database』勉強会
+: date
+   2017-06-26
+: allotted-time
+   15m
+: theme
+   .
+
+= Mroonga・PGroonga
+
+  * Mroonga（むるんが）
+    * (('wait'))MySQLに\n
+      高速日本語全文検索機能を追加する\n
+      プロダクト
+  * PGroonga（ぴーじーるんが）
+    * (('wait'))PostgreSQLに\n
+      高速日本語全文検索機能を追加する\n
+      プロダクト
