@@ -15,6 +15,142 @@
 : theme
    .
 
+= アンケート
+
+(('tag:center'))
+(('tag:large'))
+Azure Databaseで\n
+高速な日本語全文検索を\n
+したい人！
+
+(('tag:center'))
+(('note:最後にもう一度似たようなことを聞くよ！'))
+
+= 日本語全文検索：LIKE
+
+(('tag:center'))
+(('tag:x-large'))
+LIKE
+
+  * 😄SQL標準
+    * MySQLでもPostgreSQLでも使える
+  * 😄少ないデータなら速度は十分
+    * 400文字×20万件くらいなら1秒とか
+
+= LIKEのパフォーマンス
+
+  * 😣少なくないデータ
+    * レスポンスが遅い
+  * 😣多くの同時アクセス
+    * スループットがでない
+    * 1回のLIKE毎にCPUが専有されるため
+
+= パフォーマンスの考え方
+
+  * 少ないデータ &&\n
+    多くない同時アクセス
+    * LIKEで十分
+  * 少なくないデータ ||\n
+    多くの同時アクセス
+    * 高速化が必要
+
+= 高速日本語全文検索
+
+(('tag:center'))
+(('tag:margin-bottom'))
+インデックスで高速化できる
+
+  * MySQL
+    * 5.7から標準対応
+  * PostgreSQL
+    * GIN（組込）＋pg_trgm（標準添付）
+
+= 高速？
+
+(('tag:center'))
+ベンチマーク！
+
+  * 対象：Wikipedia日本語版
+  * レコード数：約185万件
+  * データサイズ：約7GB
+  * メモリー4GB・SSD250GB(('note:（ConoHa）'))
+
+(('note:https://github.com/groonga/wikipedia-search/issues/4'))
+
+(('tag:center'))
+(('note:（他人のベンチマークは参考程度）'))\n
+(('note:（検討時はちゃんと実際の環境でベンチマークをとろう！）'))
+
+= 注意
+
+  * pg_trgmではなくpg_bigmを使用
+    * pg_bigm：外部プラグイン
+    * 性能の傾向はだいたい同じ\n
+      (('note:1,2文字のときはpg_bigmの方が速い'))\n
+      (('note:3文字以上はpg_trgmの方が速い'))
+
+= 検索1
+
+(('tag:center'))
+キーワード：テレビアニメ\n
+(('note:（ヒット数：約2万3千件）'))
+
+  # RT
+  delimiter = [|]
+
+  InnoDB ngram | 3m2s
+  InnoDB MeCab | 6m20s
+  pg_bigm | 4s
+
+= 検索2
+
+(('tag:center'))
+キーワード：データベース\n
+(('note:（ヒット数：約1万7千件）'))
+
+  # RT
+  delimiter = [|]
+
+  InnoDB ngram | 36s
+  InnoDB MeCab | 0.03s
+  pg_bigm | 2s
+
+= 検索3
+
+(('tag:center'))
+キーワード：PostgreSQL OR MySQL\n
+(('note:（ヒット数：約400件）'))
+
+  # RT
+  delimiter = [|]
+
+  InnoDB ngram | N/A（エラー）
+  InnoDB MeCab | 0.005s
+  pg_bigm | 0.185s
+
+= 検索4
+
+(('tag:center'))
+キーワード：日本\n
+(('note:（ヒット数：約63万件）'))
+
+  # RT
+  delimiter = [|]
+
+  InnoDB ngram | 1.3s
+  InnoDB MeCab | 1.3s
+  pg_bigm | 0.84s
+
+= 高速…？
+
+  * InnoDB FTS MeCab
+    * ハマれば速い
+    * クエリーが複数語だと遅い
+  * pg_bigm
+    * ハマれば速い
+    * ヒット数が多いと遅い
+  * (('note:InnoDB FTS ngram：安定して遅い'))
+
 = Mroonga・PGroonga
 
   * Mroonga（むるんが）
@@ -25,3 +161,406 @@
     * (('wait'))PostgreSQLに\n
       高速日本語全文検索機能を追加する\n
       プロダクト
+
+= 検索1
+
+(('tag:center'))
+キーワード：テレビアニメ\n
+(('note:（ヒット数：約2万3千件）'))
+
+  # RT
+  delimiter = [|]
+
+  InnoDB ngram | 3m2s
+  InnoDB MeCab | 6m20s
+  Mroonga:((*1*)) | 0.11s
+  pg_bigm | 4s
+  PGroonga:((*2*)) | 0.29s
+
+= 検索2
+
+(('tag:center'))
+キーワード：データベース\n
+(('note:（ヒット数：約1万7千件）'))
+
+  # RT
+  delimiter = [|]
+
+  InnoDB ngram | 36s
+  InnoDB MeCab:((*1*)) | 0.03s
+  Mroonga:((*2*)) | 0.09s
+  pg_bigm | 2s
+  PGroonga:((*3*)) | 0.17s
+
+= 検索3
+
+(('tag:center'))
+キーワード：PostgreSQL OR MySQL\n
+(('note:（ヒット数：約400件）'))
+
+  # RT
+  delimiter = [|]
+
+  InnoDB ngram | N/A（エラー）
+  InnoDB MeCab:((*1*)) | 0.005s
+  Mroonga:((*2*)) | 0.028s
+  pg_bigm | 0.185s
+  PGroonga:((*3*)) | 0.063s
+
+= 検索4
+
+(('tag:center'))
+キーワード：日本\n
+(('note:（ヒット数：約63万件）'))
+
+  # RT
+  delimiter = [|]
+
+  InnoDB ngram | 1.3s
+  InnoDB MeCab | 1.3s
+  Mroonga:((*1*)) | 0.21s
+  pg_bigm:((*2*)) | 0.84s
+  PGroonga | 1s
+
+= 検索速度まとめ
+
+  * Mroonga・PGroonga
+    * 安定して速い
+  * InnoDB FTS MeCab・pg_bigm
+    * ハマれば速い
+  * InnoDB FTS ngram
+    * 安定して遅い
+
+= Mroonga（むるんが）
+
+MySQLに\n
+高速日本語\n
+全文検索機能を\n
+追加
+
+== スライドプロパティ
+
+: groonga-product
+
+   mroonga
+
+= Mroonga：インデックス作成
+
+(('tag:center'))
+普通のMySQLの使い方
+
+  # coderay sql
+  CREATE TABLE ... (
+    ...,
+    FULLTEXT INDEX (column)
+  ) ENGINE=Mroonga;
+
+== スライドプロパティ
+
+: groonga-product
+
+   mroonga
+
+= Mroonga：全文検索
+
+(('tag:center'))
+普通のMySQLの使い方
+
+  # coderay sql
+  SELECT * FROM ...
+    WHERE
+      MATCH(column)
+      AGAINST('キーワード'
+              IN BOOLEAN MODE);
+
+== スライドプロパティ
+
+: groonga-product
+
+   mroonga
+
+= Mroonga：クエリー言語
+
+(('tag:center'))
+デフォルトOR→AND
+
+  # coderay sql
+  -- ↓AまたはBが含まれていればマッチ
+  AGAINST('A B' IN BOOLEAN MODE);
+  AGAINST('+A +B' IN BOOLEAN MODE);
+  -- ↑↓AとBが含まれていればマッチ
+  -- ↓Mroongaの拡張
+  AGAINST('*D+ A B' IN BOOLEAN MODE);
+
+== スライドプロパティ
+
+: groonga-product
+
+   mroonga
+
+= Mroonga：Windows
+
+(('tag:center'))
+Windows用バイナリーあり
+
+  * MariaDBとセット
+  * ダウンロードして展開すると\n
+    すぐに使える
+
+== スライドプロパティ
+
+: groonga-product
+
+   mroonga
+
+= PGroonga
+
+PostgreSQLに\n
+高速日本語\n
+全文検索機能を\n
+追加
+
+== スライドプロパティ
+
+: groonga-product
+
+   pgroonga
+
+= PGroonga：インデックス
+
+(('tag:center'))
+普通のPostgreSQLの使い方
+
+  # coderay sql
+  CREATE INDEX name ON texts
+    USING pgroonga (content);
+
+== スライドプロパティ
+
+: groonga-product
+
+   pgroonga
+
+= PGroonga：全文検索
+
+(('tag:center'))
+専用演算子を使用
+
+  # coderay sql
+  SELECT * FROM ...
+    WHERE
+      column &? 'キーワード';
+
+== スライドプロパティ
+
+: groonga-product
+
+   pgroonga
+
+= PGroonga：JSON
+
+(('tag:center'))
+JSON内の全テキストを全文検索
+
+  # coderay sql
+  CREATE TABLE logs (record jsonb);
+  CREATE INDEX i ON logs
+    USING pgroonga (record);
+  -- ログのどこかに「error」があればマッチ
+  SELECT * FROM logs
+    WHERE record &? 'error';
+
+== スライドプロパティ
+
+: groonga-product
+
+   pgroonga
+
+= PGroonga：入力補完1
+
+(('tag:center'))
+検索ボックスで便利なアレ
+
+  # coderay sql
+  CREATE TABLE terms
+    (term text,        -- 候補単語
+     readings text[]); -- ヨミガナ
+  -- インデックス
+  CREATE INDEX i ON terms USING pgroonga
+    (term pgroonga.text_term_search_ops_v2,
+     readings pgroogna.text_array_term_search_ops_v2);
+
+== スライドプロパティ
+
+: groonga-product
+
+   pgroonga
+
+= PGroonga：入力補完2
+
+(('tag:center'))
+用意するデータ：\n
+候補とカタカナのヨミガナだけ
+
+  # coderay sql
+  INSERT INTO terms
+    VALUES
+      ('牛乳',               -- 補完候補
+       ARRAY['ギュウニュウ', -- ヨミガナ1
+             'ミルク']);     -- ヨミガナ2
+
+== スライドプロパティ
+
+: groonga-product
+
+   pgroonga
+
+= PGroonga：入力補完3
+
+(('tag:center'))
+ローマ字で検索
+
+  # coderay sql
+  SELECT term FROM terms
+    -- 「ギュウニュウ」にヒット
+    WHERE readings &^~ 'gy';
+  --  term 
+  -- ------
+  --  牛乳
+  -- (1 row)
+
+== スライドプロパティ
+
+: groonga-product
+
+   pgroonga
+
+= PGroonga：入力補完4
+
+(('tag:center'))
+ひらがなで検索
+
+  # coderay sql
+  SELECT term FROM terms
+    -- 「ギュウニュウ」にヒット
+    WHERE readings &^~ 'ぎゅう';
+  --  term 
+  -- ------
+  --  牛乳
+  -- (1 row)
+
+== スライドプロパティ
+
+: groonga-product
+
+   pgroonga
+
+= PGroonga：入力補完5
+
+(('tag:center'))
+カタカナで検索
+
+  # coderay sql
+  SELECT term FROM terms
+    -- 「ギュウニュウ」にヒット
+    WHERE readings &^~ 'ギュウ';
+  --  term 
+  -- ------
+  --  牛乳
+  -- (1 row)
+
+== スライドプロパティ
+
+: groonga-product
+
+   pgroonga
+
+= PGroonga：入力補完6
+
+(('tag:center'))
+別のヨミガナでもヒット
+
+  # coderay sql
+  SELECT term FROM terms
+    -- 「ミルク」にヒット
+    WHERE readings &^~ 'mi';
+  --  term 
+  -- ------
+  --  牛乳
+  -- (1 row)
+
+== スライドプロパティ
+
+: groonga-product
+
+   pgroonga
+
+= PGroonga：入力補完7
+
+(('tag:center'))
+漢字でもヒット
+
+  # coderay sql
+  SELECT term FROM terms
+    -- 「牛乳」にヒット
+    WHERE readings &^ '牛';
+  --  term 
+  -- ------
+  --  牛乳
+  -- (1 row)
+
+== スライドプロパティ
+
+: groonga-product
+
+   pgroonga
+
+= PGroonga：Windows
+
+(('tag:center'))
+Windows用バイナリーあり
+
+  * 商用ログ管理製品\n
+    「VVAULT AUDIT」が採用\n
+    (('note:http://vvault.jp/product/vvault-audit/'))
+    * アクセスログに対して\n
+      ユーザー名・パスを全文検索
+  * 決め手：高速・省スペース
+
+== スライドプロパティ
+
+: groonga-product
+
+   pgroonga
+
+= まとめ
+
+  * Mroonga（むるんが）
+    * MySQLで高速日本語全文検索！
+    * しかも使いやすいし便利！
+  * PGroonga（ぴーじーるんが）
+    * PostgreSQLで高速日本語全文検索！
+    * しかも使いやすいし便利！
+
+= アンケート1
+
+(('tag:center'))
+(('tag:large'))
+Azure Databaseで\n
+高速な日本語全文検索を\n
+したい人！
+
+(('tag:center'))
+(('note:最初より増えているといいな'))
+
+= アンケート2
+
+(('tag:center'))
+(('tag:large'))
+Azure Databaseで\n
+Mroonga・PGroongaを\n
+使いたい人！
+
+(('tag:center'))
+(('note:Azure Database開発者にアピールして！'))\n
+(('note:どういう風に使いたいか教えて！'))
