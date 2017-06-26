@@ -376,6 +376,22 @@ JSON内の全テキストを全文検索
 
    pgroonga
 
+= PGroonga：JSON全文検索例
+
+(('tag:center'))
+以下は全部マッチ
+
+  # coderay json
+  {"message": "Error!"}
+  {"tags": ["web", "error"]}
+  {"syslog": {"message": "error!"}}
+
+== スライドプロパティ
+
+: groonga-product
+
+   pgroonga
+
 = PGroonga：入力補完1
 
 (('tag:center'))
